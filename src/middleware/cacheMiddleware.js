@@ -1,4 +1,6 @@
-const cache = require('./cache');
+const { cache } = require('./cache.js');
+
+const TTL = 60 * 1000; // 1 minute
 
 function cacheMiddleware(req, res, next) {
 
@@ -7,22 +9,30 @@ function cacheMiddleware(req, res, next) {
     const cached = cache.get(key);
 
     if (cached) {
-        res.set("X-Cache", "HIT");
-        return res.json(cached);
+
+        const age = Date.now() - cached.createdAt;
+
+        if (age < TTL) {
+            res.set("X-Cache", "HIT");
+
+            return res.json(cached.data);
+        }
+
+        // Cache exists, but has expired
+        cache.delete(key);
     }
 
     res.set("X-Cache", "MISS");
 
-    // Save the original res.json function
     const originalJson = res.json.bind(res);
 
-    // Replace res.json with our own function
     res.json = (data) => {
 
-        // Store fresh data in cache
-        cache.set(key, data);
+        cache.set(key, {
+            data: data,
+            createdAt: Date.now()
+        });
 
-        // Now actually send the response
         return originalJson(data);
     };
 
