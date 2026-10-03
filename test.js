@@ -41,6 +41,7 @@ app.get('/products',async (req, res) => {
             return res.json(value);;
          // key = /products, value = {/products:[]}
         }
+        
     let products = await readFileWithDelay();
     cache[key] = products;
     res.set("X-Cache","MISS")
